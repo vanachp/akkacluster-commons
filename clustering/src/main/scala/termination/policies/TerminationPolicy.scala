@@ -5,6 +5,7 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, Member}
 import akka.remote.ThisActorSystemQuarantinedEvent
 import termination.config.TerminationPolicySettings
+import termination.data.DownSchedulerMessage
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -14,7 +15,7 @@ import scala.util.Try
 trait TerminationPolicy extends Actor with ActorLogging {
   import context.dispatcher
 
-  override def supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
+  override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
 
   protected val cluster: Cluster = Cluster(context.system)
 
@@ -117,5 +118,3 @@ object TerminationPolicy{
   val ROLE_RATIO = "roleratio"
   val NOOP = "off"
 }
-
-case class DownSchedulerMessage(nodes: Set[Member])
