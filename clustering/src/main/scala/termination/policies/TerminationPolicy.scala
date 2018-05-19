@@ -1,6 +1,6 @@
 package termination.policies
 
-import akka.actor.{Actor, ActorLogging, ActorRef, SupervisorStrategy}
+import akka.actor.{Actor, ActorLogging, ActorRef, SupervisorStrategy, Terminated}
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, Member}
 import akka.remote.ThisActorSystemQuarantinedEvent
@@ -19,19 +19,16 @@ trait TerminationPolicy extends Actor with ActorLogging {
 
   protected val cluster: Cluster = Cluster(context.system)
 
-  def coordinateActor: ActorRef
   def policySetting: TerminationPolicySettings
 
   override def receive: Receive = Actor.emptyBehavior
 
   override def preStart(): Unit = {
-    log.warning("Creating constructr-machine, because no seed-nodes defined")
-
     cluster.subscribe(self,InitialStateAsEvents, classOf[LeaderChanged], classOf[MemberExited], classOf[MemberJoined],
       classOf[UnreachableMember], classOf[ReachableMember], classOf[MemberLeft], classOf[MemberExited], classOf[MemberRemoved]
     )
     context.system.eventStream.subscribe(self, classOf[ThisActorSystemQuarantinedEvent])
-    context.become(active(coordinateActor))
+    context.become(active(self))
   }
 
   private def active(machine: ActorRef): Receive = {
@@ -69,6 +66,21 @@ trait TerminationPolicy extends Actor with ActorLogging {
     case DownSchedulerMessage(nodes) =>
       val state = cluster.state
       downHandler(state, nodes)
+
+    case Terminated(`machine`) =>
+      log.error("Terminating the system, because constructr-machine has terminated!")
+      terminateSelf()
+
+    case MemberRemoved(member, previousStatus) =>
+      if( member.address == Cluster(context.system).selfAddress){
+        log.error("Terminating the system, because member has been removed!")
+        terminateSelf()
+      }else{
+        log.warning(s"Member $member is removed (was $previousStatus)")
+      }
+    case ThisActorSystemQuarantinedEvent(localAddress, uid) =>
+      log.error(s"Terminating the system, because member has been quanrantined! address: $localAddress")
+      terminateSelf()
   }
 
   protected def downHandler(currentClusterState: CurrentClusterState, nodes: Set[Member]): Unit = {
@@ -109,7 +121,6 @@ trait TerminationPolicy extends Actor with ActorLogging {
         }
       }
     }.start()
-
   }
 }
 

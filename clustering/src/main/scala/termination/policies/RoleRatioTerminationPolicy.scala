@@ -16,8 +16,8 @@ private[policies] trait RoleRatioTerminationPolicy extends TerminationPolicy{
   override def chooseSelfCluster(state: CurrentClusterState): Boolean = {
     val reachableMembers = state.members -- state.unreachable
     val unreachableMembers = state.unreachable
-    val sortedReachableRatio = getSortedRoleRatio(state, reachableMembers, policySetting.roleRatioMapping.get)
-    val sortedUnreachableRatio = getSortedRoleRatio(state, unreachableMembers, policySetting.roleRatioMapping.get)
+    val sortedReachableRatio = getSortedRoleRatio(reachableMembers, policySetting.roleRatioMapping.get)
+    val sortedUnreachableRatio = getSortedRoleRatio(unreachableMembers, policySetting.roleRatioMapping.get)
     log.warning(s"Comparing between $sortedReachableRatio and $sortedUnreachableRatio")
     val result = sortedReachableRatio.compareTo(sortedUnreachableRatio) match {
       case 0 => reachableMembers.size.compareTo(unreachableMembers.size)
@@ -30,9 +30,9 @@ private[policies] trait RoleRatioTerminationPolicy extends TerminationPolicy{
     compareResult == 1
   }
 
-  private def getSortedRoleRatio(state: CurrentClusterState, members: Set[Member], ratioMapping: Map[String, Int]): OrderlyComparableList[RoleScore] = {
+  private def getSortedRoleRatio( members: Set[Member], ratioMapping: Map[String, Int]): OrderlyComparableList[RoleScore] = {
     val roles = ratioMapping.keySet
-    val list = roles.map(x => RoleScore(x, members.count(_.hasRole(x)).toDouble/ ratioMapping.get(x).get)).toList.sortBy(_.value)
+    val list = roles.map(x => RoleScore(x, members.count(_.hasRole(x)).toDouble/ ratioMapping(x))).toList.sortBy(_.value)
     new OrderlyComparableList[RoleScore](list)
   }
 }

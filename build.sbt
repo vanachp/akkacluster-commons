@@ -2,8 +2,9 @@ name := "akkacluster-commons"
 
 val SCALA_VERSION = "2.12.6"
 val AKKA_VERSION = "2.5.12"
+val SCALATEST_VERSION = "3.0.5"
 
-lazy val scalautils = project
+lazy val clustercommon = project
   .in(file("."))
   .settings(basicSettings)
   .aggregate(clustering)
@@ -30,8 +31,10 @@ lazy val basicSettings = Seq(
   ),
 
   libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-actor"               % AKKA_VERSION,
-    "com.typesafe.akka" %% "akka-cluster"             % AKKA_VERSION,
-    "com.typesafe.akka" %% "akka-remote"              % AKKA_VERSION
+    "com.typesafe.akka"   %% "akka-actor"      % AKKA_VERSION,
+    "com.typesafe.akka"   %% "akka-cluster"    % AKKA_VERSION,
+    "com.typesafe.akka"   %% "akka-remote"     % AKKA_VERSION,
+    "org.scalactic"       %% "scalactic"       % SCALATEST_VERSION,
+    "org.scalatest"       %% "scalatest"       % SCALATEST_VERSION % "test"
   )
 )
